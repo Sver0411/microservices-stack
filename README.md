@@ -1,17 +1,17 @@
-# 🏗️ Personal Microservices Stack
+# 🏗️ 个人微服务技术栈
 
-> 6-service Docker stack behind a single Nginx reverse proxy — system monitoring, blog API, library management, laptop booking, and file conversion.
+> 基于 Docker Compose 的 6 容器微服务架构 — 系统监控、博客 API、智慧图书馆、电脑预约、文件转换，Nginx 反向代理统一入口。
 
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
 [![Nginx](https://img.shields.io/badge/nginx-reverse_proxy-009639?logo=nginx)](https://nginx.org/)
 [![Python](https://img.shields.io/badge/python-3.11-blue?logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-A production-grade microservices architecture running on a single cloud server with **Docker Compose** orchestration, **Nginx reverse proxy**, **SSL termination**, and **6 independent services** communicating over an internal Docker network.
+一套运行在单台云服务器上的生产级微服务架构，采用 **Docker Compose** 编排、**Nginx 反向代理**、**SSL 终端**，6 个独立服务通过内部 Docker 网络通信。适合全栈学习者参考、面试展示或个人站点搭建。
 
 ---
 
-## 📐 Architecture
+## 📐 系统架构
 
 ```
                     ┌──────────────────────────────┐
@@ -42,7 +42,7 @@ A production-grade microservices architecture running on a single cloud server w
 
 ---
 
-## 🚀 Services
+## 🚀 服务列表
 
 | Service | Tech Stack | Port | Description |
 |---------|-----------|------|-------------|
@@ -55,41 +55,41 @@ A production-grade microservices architecture running on a single cloud server w
 
 ---
 
-## 📦 Quick Start
+## 📦 快速开始
 
-### Prerequisites
+### 环境要求
 
 - Docker & Docker Compose
 - SSL certificates (optional — place in `./ssl/`)
 
-### 1. Clone
+### 1. 克隆
 
 ```bash
 git clone https://github.com/Sver0411/microservices-stack.git
 cd microservices-stack
 ```
 
-### 2. Configure
+### 2. 配置
 
 ```bash
 cp .env.example .env
 # Edit .env with your settings
 ```
 
-### 3. Create Docker network
+### 3. 创建 Docker 网络
 
 ```bash
 docker network create services-net
 ```
 
-### 4. Build & Run
+### 4. 构建 & 启动
 
 ```bash
 docker compose build
 docker compose up -d
 ```
 
-### 5. Verify
+### 5. 验证
 
 ```bash
 curl http://localhost/dashboard/
@@ -99,7 +99,7 @@ curl http://localhost/api/status
 
 ---
 
-## 📁 Project Structure
+## 📁 项目结构
 
 ```
 microservices-stack/
@@ -136,7 +136,7 @@ microservices-stack/
 
 ---
 
-## 🔧 Key Features
+## 🔧 核心功能
 
 ### Dashboard API (`/api/status`)
 - Real-time CPU, memory, disk usage (`/host_proc`)
@@ -173,7 +173,7 @@ microservices-stack/
 
 ---
 
-## 🐳 Docker Networking
+## 🐳 容器网络
 
 All services communicate over an **external Docker network** (`services-net`). The Nginx container acts as the single entry point and proxies requests to backend containers by hostname:
 
@@ -188,7 +188,7 @@ proxy_pass http://$lib_api;
 
 ---
 
-## 🔒 Security
+## 🔒 安全性
 
 - SSL/TLS termination at Nginx (TLSv1.2+)
 - `server_tokens off` — hides Nginx version
@@ -199,7 +199,7 @@ proxy_pass http://$lib_api;
 
 ---
 
-## 🛠️ Tech Stack Overview
+## 🛠️ 技术栈总览
 
 | Category | Technology |
 |----------|-----------|
@@ -213,12 +213,12 @@ proxy_pass http://$lib_api;
 
 ---
 
-## 📝 License
+## 📝 开源协议
 
 MIT © 2026
 
 ---
 
-## 🤝 Contributing
+## 🤝 参与贡献
 
-This is a personal showcase project — feel free to fork, star, or open issues for suggestions!
+这是个人展示项目 — 欢迎 Fork、Star，或提 Issue 交流想法！
