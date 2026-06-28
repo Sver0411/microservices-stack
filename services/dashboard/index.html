@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Dashboard</title>
+    <style>
+        :root {
+            --bg: #f2f2f7;
+            --text: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --accent2: #5e5ce6;
+            --accent3: #bf5af2;
+            --glass-bg: rgba(255,255,255,0.55);
+            --glass-border: rgba(255,255,255,0.5);
+            --glass-shadow: 0 8px 32px rgba(0,0,0,0.04),0 2px 8px rgba(0,0,0,0.02);
+            --radius: 24px;
+            --radius-sm: 18px;
+            --green: #34c759;
+            --orange: #ff9500;
+            --red: #ff3b30;
+        }
+        [data-theme="dark"] {
+            --bg: #000000;
+            --text: #f5f5f7;
+            --text-secondary: #98989d;
+            --accent: #0a84ff;
+            --accent2: #7d6aff;
+            --accent3: #d45aff;
+            --glass-bg: rgba(28,28,30,0.55);
+            --glass-border: rgba(255,255,255,0.08);
+            --glass-shadow: 0 8px 32px rgba(0,0,0,0.2),0 2px 8px rgba(0,0,0,0.1);
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Noto Sans SC",sans-serif;
+            background:var(--bg);color:var(--text);
+            min-height:100vh;-webkit-font-smoothing:antialiased;
+            transition:background 0.6s,color 0.6s;
+        }
+        /* ── Orbs ── */
+        .orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(140px);opacity:0.35;animation:orbDrift 30s ease-in-out infinite;transition:opacity 0.6s}
+        .orb-1{width:500px;height:500px;background:radial-gradient(circle,#0071e3,transparent 70%);top:-150px;right:-100px}
+        .orb-2{width:400px;height:400px;background:radial-gradient(circle,#bf5af2,transparent 70%);bottom:-150px;left:-80px;animation-delay:-12s}
+        .orb-3{width:350px;height:350px;background:radial-gradient(circle,#5e5ce6,transparent 70%);top:50%;left:50%;animation-delay:-6s}
+        @keyframes orbDrift{0%,100%{transform:translate(0,0)}33%{transform:translate(40px,-30px)}66%{transform:translate(-30px,40px)}}
+
+        /* ── Layout ── */
+        .container{max-width:1200px;margin:0 auto;padding:28px 24px;position:relative;z-index:1}
+        header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+        header h1{font-size:32px;font-weight:700;letter-spacing:-0.5px}
+        header .time{font-size:15px;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+        .header-right{display:flex;align-items:center;gap:16px}
+
+        /* ── Theme Toggle ── */
+        .theme-toggle{
+            width:48px;height:28px;border-radius:14px;border:none;
+            background:var(--glass-bg);backdrop-filter:blur(40px) saturate(180%);
+            -webkit-backdrop-filter:blur(40px) saturate(180%);
+            box-shadow:inset 0 1px 3px rgba(0,0,0,0.08);cursor:pointer;
+            position:relative;transition:all 0.3s;
+        }
+        .theme-toggle::after{
+            content:"";position:absolute;top:3px;left:3px;
+            width:22px;height:22px;border-radius:50%;
+            background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.15);
+            transition:transform 0.3s;
+        }
+        [data-theme="dark"] .theme-toggle::after{transform:translateX(20px)}
+
+        /* ── Card ── */
+        .card{
+            background:var(--glass-bg);border:1px solid var(--glass-border);
+            backdrop-filter:blur(60px) saturate(180%);
+            -webkit-backdrop-filter:blur(60px) saturate(180%);
+            border-radius:var(--radius);padding:24px;
+            box-shadow:var(--glass-shadow);transition:all 0.4s;
+        }
+        .card:hover{box-shadow:0 12px 48px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.03)}
+        .card-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);margin-bottom:12px}
+        .card-value{font-size:36px;font-weight:700;letter-spacing:-1px}
+        .card-unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:4px}
+
+        /* ── Grid ── */
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:20px}
+        .grid-2{grid-template-columns:1fr 1fr}
+        .grid-3{grid-template-columns:repeat(3,1fr)}
+        .grid-4{grid-template-columns:repeat(4,1fr)}
+        .grid-5{grid-template-columns:repeat(5,1fr)}
+        .section-title{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);margin:28px 0 14px}
+
+        /* ── Gauge ── */
+        .gauge-ring{position:relative;width:120px;height:120px;margin:0 auto}
+        .gauge-ring svg{transform:rotate(-90deg)}
+        .gauge-ring .bg{fill:none;stroke:rgba(128,128,128,0.12);stroke-width:8}
+        .gauge-ring .fg{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 0.8s,stroke 0.5s}
+        .gauge-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+        .gauge-percent{font-size:28px;font-weight:700}
+
+        /* ── Bar ── */
+        .bar-track{height:10px;background:rgba(128,128,128,0.1);border-radius:5px;overflow:hidden;margin-top:8px}
+        .bar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 0.8s}
+        .bar-info{display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:4px}
+
+        /* ── Stat row ── */
+        .stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(128,128,128,0.06)}
+        .stat-row:last-child{border-bottom:none}
+        .stat-label{font-size:13px;color:var(--text-secondary)}
+        .stat-value{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+
+        /* ── Status dot ── */
+        .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+        .status-dot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
+        .status-dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+
+        /* ── Service Health Row ── */
+        .service-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+        .service-pill{
+            display:flex;align-items:center;gap:8px;
+            background:var(--glass-bg);border:1px solid var(--glass-border);
+            backdrop-filter:blur(40px) saturate(180%);
+            -webkit-backdrop-filter:blur(40px) saturate(180%);
+            border-radius:20px;padding:8px 16px;
+            box-shadow:var(--glass-shadow);font-size:13px;
+            transition:all 0.3s;
+        }
+        .service-pill .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .service-pill .dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+        .service-pill .dot.down{background:var(--red);box-shadow:0 0 6px var(--red)}
+        .service-pill .name{font-weight:600}
+        .service-pill .time{font-size:11px;color:var(--text-secondary)}
+
+        /* ── Range Toggle ── */
+        .range-toggles{display:flex;gap:6px;margin-bottom:16px}
+        .range-btn{
+            padding:6px 16px;border-radius:16px;border:1px solid var(--glass-border);
+            background:var(--glass-bg);color:var(--text-secondary);
+            font-size:12px;font-weight:600;cursor:pointer;
+            backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+            transition:all 0.25s;
+        }
+        .range-btn:hover{color:var(--accent);border-color:var(--accent)}
+        .range-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+        /* ── Chart ── */
+        .chart-wrap{position:relative;width:100%;height:280px}
+        .chart-wrap canvas{width:100%;height:100%}
+        .chart-legend{display:flex;gap:20px;margin-bottom:8px;font-size:12px}
+        .chart-legend span{display:flex;align-items:center;gap:6px}
+        .chart-legend .swatch{width:12px;height:12px;border-radius:3px}
+        .chart-tooltip{
+            position:absolute;pointer-events:none;
+            background:var(--glass-bg);border:1px solid var(--glass-border);
+            backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+            border-radius:12px;padding:10px 14px;font-size:12px;
+            box-shadow:0 8px 24px rgba(0,0,0,0.08);display:none;
+            z-index:10;white-space:nowrap;
+        }
+
+        /* ── Container Card ── */
+        .container-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+        .container-card{
+            background:var(--glass-bg);border:1px solid var(--glass-border);
+            backdrop-filter:blur(40px) saturate(180%);
+            -webkit-backdrop-filter:blur(40px) saturate(180%);
+            border-radius:var(--radius-sm);padding:16px;
+            box-shadow:var(--glass-shadow);transition:all 0.3s;
+            border-left:3px solid var(--green);
+        }
+        .container-card.stopped{border-left-color:var(--red)}
+        .container-card .c-name{font-weight:700;font-size:14px;margin-bottom:6px}
+        .container-card .c-info{font-size:11px;color:var(--text-secondary);line-height:1.6}
+        .container-card .c-status{
+            display:inline-block;padding:2px 8px;border-radius:10px;
+            font-size:11px;font-weight:600;
+        }
+        .container-card .c-status.running{background:rgba(52,199,89,0.12);color:var(--green)}
+        .container-card .c-status.stopped{background:rgba(255,59,48,0.12);color:var(--red)}
+
+        /* ── SSL Countdown ── */
+        .ssl-countdown{text-align:center}
+        .ssl-countdown .days{font-size:64px;font-weight:700;letter-spacing:-2px;line-height:1}
+        .ssl-countdown .days.green{color:var(--green)}
+        .ssl-countdown .days.yellow{color:var(--orange)}
+        .ssl-countdown .days.red{color:var(--red)}
+
+        /* ── Stats mini cards ── */
+        .stats-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+        .stats-mini .mini-card{
+            background:var(--glass-bg);border:1px solid var(--glass-border);
+            backdrop-filter:blur(40px) saturate(180%);
+            -webkit-backdrop-filter:blur(40px) saturate(180%);
+            border-radius:var(--radius-sm);padding:14px 16px;
+            box-shadow:var(--glass-shadow);text-align:center;
+        }
+        .stats-mini .mini-num{font-size:28px;font-weight:700}
+        .stats-mini .mini-label{font-size:11px;color:var(--text-secondary);margin-top:4px}
+
+        /* ── Nav ── */
+        .topnav{position:fixed;top:24px;right:28px;z-index:100;display:flex;gap:6px;align-items:center;background:var(--glass-bg);backdrop-filter:blur(60px)saturate(180%);-webkit-backdrop-filter:blur(60px)saturate(180%);border:1px solid var(--glass-border);border-radius:28px;padding:5px 6px;box-shadow:var(--glass-shadow)}
+        .back-link{display:inline-flex;align-items:center;gap:5px;color:var(--accent);text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:22px;transition:0.25s}
+        .back-link:hover{background:rgba(0,113,227,0.06)}
+        .nav-right{display:flex;gap:6px;align-items:center}
+        .nav-link{font-size:12.5px;color:var(--text-secondary);text-decoration:none;font-weight:600;padding:8px 15px;border-radius:22px;transition:0.25s}
+        .nav-link:hover{color:var(--accent);background:rgba(0,113,227,0.06)}
+        .nav-link.active{color:var(--accent);background:rgba(0,113,227,0.08)}
+
+        /* ── Responsive ── */
+        @media(max-width:768px){
+            .grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr}
+            .container{padding:16px 12px}
+            header{flex-direction:column;align-items:flex-start;gap:8px}
+            header h1{font-size:22px}
+            header .time{font-size:13px}
+            .card{padding:18px;border-radius:var(--radius-sm)}
+            .card-value{font-size:26px}
+            .gauge-ring{width:100px;height:100px}
+            .gauge-percent{font-size:22px}
+            .theme-toggle{min-width:48px}
+            div[style*="1fr 2fr"]{grid-template-columns:1fr!important}
+            .ssl-countdown .days{font-size:44px}
+            .chart-wrap{height:220px}
+            .container-grid{grid-template-columns:1fr}
+            .topnav{top:auto;bottom:16px;right:50%;transform:translateX(50%);gap:2px;padding:4px 5px;border-radius:24px}
+            .back-link,.nav-link{font-size:10px;padding:6px 10px}
+        }
+    </style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="topnav">
+    <a href="/" class="back-link">← 返回</a>
+    <div class="nav-right">
+        <a href="/" class="nav-link">首页</a>
+        <a href="/projects/" class="nav-link">项目</a>
+        <a href="/dashboard/" class="nav-link active">仪表盘</a>
+        <a href="/blog/" class="nav-link">博客</a>
+        <a href="/toolbox/" class="nav-link">工具箱</a>
+        <button class="theme-btn" id="themeBtn" title="切换主题">🌙</button>
+    </div>
+</div>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>🖥️ 服务监控仪表盘</h1>
+            <div class="time" id="liveTime">--</div>
+        </div>
+        <div class="header-right">
+            <span style="font-size:13px;color:var(--text-secondary)">Admin</span>
+            <button class="theme-toggle" onclick="toggleTheme()" title="切换主题"></button>
+        </div>
+    </header>
+
+    <!-- ═══ SERVICE HEALTH ROW ═══ -->
+    <div class="service-row" id="serviceRow"></div>
+
+    <!-- ═══ SYSTEM METRICS (existing, unchanged) ═══ -->
+    <div class="grid">
+        <!-- CPU -->
+        <div class="card" style="text-align:center">
+            <div class="card-label">CPU 使用率</div>
+            <div class="gauge-ring">
+                <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="cpuRing" cx="60" cy="60" r="52"/></svg>
+                <div class="gauge-center"><span class="gauge-percent" id="cpuPct">0</span><span style="font-size:12px">%</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px" id="cpuCores">2 核心</div>
+        </div>
+
+        <!-- Memory -->
+        <div class="card">
+            <div class="card-label">内存</div>
+            <div class="card-value" id="memPct" style="font-size:28px">0%</div>
+            <div class="bar-track"><div class="bar-fill" id="memBar" style="width:0%"></div></div>
+            <div class="bar-info" style="margin-top:6px"><span id="memUsed">--</span><span id="memTotal">--</span></div>
+        </div>
+
+        <!-- Disk -->
+        <div class="card">
+            <div class="card-label">磁盘</div>
+            <div class="card-value" id="diskPct" style="font-size:28px">0%</div>
+            <div class="bar-track"><div class="bar-fill" id="diskBar" style="width:0%"></div></div>
+            <div class="bar-info" style="margin-top:6px"><span id="diskUsed">--</span><span id="diskTotal">--</span></div>
+        </div>
+
+        <!-- Uptime -->
+        <div class="card">
+            <div class="card-label">运行时间</div>
+            <div class="card-value" id="uptime" style="font-size:28px">--</div>
+            <div class="stat-row"><span class="stat-label">系统负载</span><span class="stat-value" id="load">--</span></div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="grid-template-columns:1fr 2fr">
+        <!-- Network -->
+        <div class="card">
+            <div class="card-label">网络流量</div>
+            <div class="stat-row"><span class="stat-label">📤 发送</span><span class="stat-value" id="netSent">--</span></div>
+            <div class="stat-row"><span class="stat-label">📥 接收</span><span class="stat-value" id="netRecv">--</span></div>
+            <div class="stat-row" style="margin-top:12px">
+                <span class="stat-label"><span class="status-dot green"></span>服务状态</span>
+                <span class="stat-value" style="color:var(--green)">正常运行</span>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="card">
+            <div class="card-label">系统信息</div>
+            <div class="stat-row"><span class="stat-label">🏷️ 系统</span><span class="stat-value">Ubuntu 24.04 LTS</span></div>
+            <div class="stat-row"><span class="stat-label">⚙️ 内核</span><span class="stat-value" id="kernel">--</span></div>
+            <div class="stat-row"><span class="stat-label">🐳 Docker</span><span class="stat-value">29.6.0</span></div>
+            <div class="stat-row"><span class="stat-label">🌐 公网 IP</span><span class="stat-value">0.0.0.0</span></div>
+        </div>
+    </div>
+
+    <!-- ═══ NEW: METRICS HISTORY CHART ═══ -->
+    <div class="section-title">📈 指标历史</div>
+    <div class="card">
+        <div class="chart-legend">
+            <span><span class="swatch" style="background:var(--accent)"></span> CPU</span>
+            <span><span class="swatch" style="background:var(--accent2)"></span> 内存</span>
+            <span><span class="swatch" style="background:var(--accent3)"></span> 磁盘</span>
+        </div>
+        <div class="range-toggles" id="rangeToggles">
+            <button class="range-btn active" data-range="1h">1小时</button>
+            <button class="range-btn" data-range="6h">6小时</button>
+            <button class="range-btn" data-range="24h">24小时</button>
+            <button class="range-btn" data-range="7d">7天</button>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+            <canvas id="metricsChart"></canvas>
+            <div class="chart-tooltip" id="chartTooltip"></div>
+        </div>
+    </div>
+
+    <!-- ═══ NEW: DOCKER CONTAINERS ═══ -->
+    <div class="section-title">🐳 Docker 容器</div>
+    <div class="container-grid" id="containerGrid"></div>
+
+    <!-- ═══ NEW: SSL + NGINX STATS ROW ═══ -->
+    <div class="grid grid-2" style="margin-top:20px">
+        <!-- SSL Certificate -->
+        <div class="card ssl-countdown">
+            <div class="card-label">🔒 SSL 证书</div>
+            <div id="sslDomain" style="font-size:14px;font-weight:600;margin-bottom:8px">--</div>
+            <div class="days" id="sslDays">--</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:6px" id="sslExpiry">--</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px" id="sslIssuer">--</div>
+        </div>
+
+        <!-- Nginx Stats -->
+        <div class="card">
+            <div class="card-label">🌐 Nginx 今日统计</div>
+            <div class="stats-mini">
+                <div class="mini-card"><div class="mini-num" id="nginxPV" style="color:var(--accent)">--</div><div class="mini-label">PV</div></div>
+                <div class="mini-card"><div class="mini-num" id="nginxUV" style="color:var(--accent2)">--</div><div class="mini-label">UV</div></div>
+                <div class="mini-card"><div class="mini-num" id="nginx2xx" style="color:var(--green)">--</div><div class="mini-label">2xx</div></div>
+                <div class="mini-card"><div class="mini-num" id="nginx3xx" style="color:var(--orange)">--</div><div class="mini-label">3xx</div></div>
+                <div class="mini-card"><div class="mini-num" id="nginx4xx" style="color:var(--orange)">--</div><div class="mini-label">4xx</div></div>
+                <div class="mini-card"><div class="mini-num" id="nginx5xx" style="color:var(--red)">--</div><div class="mini-label">5xx</div></div>
+            </div>
+            <div style="margin-top:14px">
+                <div class="card-label" style="margin-bottom:8px">热门路径 Top 10</div>
+                <div id="nginxTopPaths" style="font-size:11px;color:var(--text-secondary)"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Constants ──
+const C = 2 * Math.PI * 52;
+const CHART_COLORS = {
+    cpu: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0071e3',
+    mem: getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#5e5ce6',
+    disk: getComputedStyle(document.documentElement).getPropertyValue('--accent3').trim() || '#bf5af2'
+};
+
+document.getElementById("cpuRing").style.strokeDasharray = C;
+
+// ── State ──
+let historyRange = '1h';
+let chartData = [];
+
+// ── API Fetch ──
+async function fetchStatus() {
+    try {
+        const r = await fetch("/api/status");
+        const d = await r.json();
+        updateUI(d);
+    } catch(e) { console.error("status:", e) }
+}
+
+async function fetchServices() {
+    try {
+        const r = await fetch("/api/services");
+        const d = await r.json();
+        renderServices(d.services);
+    } catch(e) { console.error("services:", e) }
+}
+
+async function fetchContainers() {
+    try {
+        const r = await fetch("/api/containers");
+        const d = await r.json();
+        renderContainers(d.containers);
+    } catch(e) { console.error("containers:", e) }
+}
+
+async function fetchSSL() {
+    try {
+        const r = await fetch("/api/ssl");
+        const d = await r.json();
+        renderSSL(d);
+    } catch(e) { console.error("ssl:", e) }
+}
+
+async function fetchNginxStats() {
+    try {
+        const r = await fetch("/api/nginx-stats");
+        const d = await r.json();
+        renderNginxStats(d);
+    } catch(e) { console.error("nginx:", e) }
+}
+
+async function fetchHistory() {
+    try {
+        const r = await fetch("/api/metrics/history?range=" + historyRange);
+        const d = await r.json();
+        chartData = d.data || [];
+        drawChart();
+    } catch(e) { console.error("history:", e) }
+}
+
+// ── Format Helpers ──
+function fmtBytes(b) {
+    if(!b || b < 0) return "--";
+    if(b < 1024) return b + " B";
+    if(b < 1048576) return (b/1024).toFixed(1) + " KB";
+    if(b < 1073741824) return (b/1048576).toFixed(1) + " MB";
+    return (b/1073741824).toFixed(2) + " GB";
+}
+
+function fmtUptime(s) {
+    if(!s || s <= 0) return "--";
+    const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+    return (d?d+"天 ":"")+h+"小时 "+m+"分钟";
+}
+
+function fmtTime(ts) {
+    const d = new Date(ts * 1000);
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function fmtTimeFull(ts) {
+    const d = new Date(ts * 1000);
+    return d.getMonth()+1 + '/' + d.getDate() + ' ' + fmtTime(ts);
+}
+
+// ── System UI Update (existing, preserved) ──
+function updateUI(d) {
+    document.getElementById("liveTime").textContent = d.date + "  " + d.time + "  ·  周" + ["一","二","三","四","五","六","日"][d.weekday];
+
+    // CPU
+    const cpu = d.cpu.percent;
+    document.getElementById("cpuPct").textContent = Math.round(cpu);
+    document.getElementById("cpuRing").style.strokeDashoffset = C * (1 - cpu/100);
+    const ring = document.getElementById("cpuRing");
+    if(cpu > 80) ring.style.stroke = "var(--red)";
+    else if(cpu > 50) ring.style.stroke = "var(--orange)";
+    else ring.style.stroke = "var(--accent)";
+    document.getElementById("cpuCores").textContent = d.cpu.cores + " 核心";
+
+    // Memory
+    document.getElementById("memPct").textContent = Math.round(d.memory.percent) + "%";
+    document.getElementById("memBar").style.width = d.memory.percent + "%";
+    document.getElementById("memUsed").textContent = "已用 " + fmtBytes(d.memory.used);
+    document.getElementById("memTotal").textContent = "总计 " + fmtBytes(d.memory.total);
+
+    // Disk
+    document.getElementById("diskPct").textContent = Math.round(d.disk.percent) + "%";
+    document.getElementById("diskBar").style.width = d.disk.percent + "%";
+    document.getElementById("diskUsed").textContent = "已用 " + fmtBytes(d.disk.used);
+    document.getElementById("diskTotal").textContent = "总计 " + fmtBytes(d.disk.total);
+
+    // Uptime
+    document.getElementById("uptime").textContent = fmtUptime(d.uptime);
+    document.getElementById("load").textContent = d.load["1m"].toFixed(1)+" / "+d.load["5m"].toFixed(1)+" / "+d.load["15m"].toFixed(1);
+
+    // Network (safe fallback)
+    const net = d.network || {};
+    document.getElementById("netSent").textContent = net.sent != null ? fmtBytes(net.sent) : "--";
+    document.getElementById("netRecv").textContent = net.recv != null ? fmtBytes(net.recv) : "--";
+
+    // Kernel
+    document.getElementById("kernel").textContent = d.load["1m"] >= 0 ? "6.8.0-117-generic" : "--";
+}
+
+// ── Service Health ──
+function renderServices(services) {
+    if(!services || !services.length) return;
+    const row = document.getElementById("serviceRow");
+    row.innerHTML = services.map(s => {
+        const cls = s.status === 'up' ? 'up' : 'down';
+        return `<div class="service-pill">
+            <span class="dot ${cls}"></span>
+            <span class="name">${escHtml(s.name)}</span>
+            <span class="time">${s.response_time_ms}ms</span>
+        </div>`;
+    }).join('');
+}
+
+// ── Docker Containers ──
+function renderContainers(containers) {
+    if(!containers || !containers.length) {
+        document.getElementById("containerGrid").innerHTML = '<div class="card" style="text-align:center;font-size:13px;color:var(--text-secondary)">暂无容器数据</div>';
+        return;
+    }
+    const grid = document.getElementById("containerGrid");
+    grid.innerHTML = containers.map(c => {
+        const running = c.status === 'running';
+        const statusCls = running ? 'running' : 'stopped';
+        const statusText = running ? '● 运行中' : '● 已停止';
+        const cardCls = running ? '' : 'stopped';
+        const ports = c.ports && c.ports.length ? c.ports.join(', ') : '—';
+        return `<div class="container-card ${cardCls}">
+            <div class="c-name">${escHtml(c.name)}</div>
+            <span class="c-status ${statusCls}">${statusText}</span>
+            <div class="c-info" style="margin-top:6px">
+                <div>镜像: ${escHtml(c.image)}</div>
+                <div>端口: ${ports}</div>
+                <div>${escHtml(c.status_text)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── SSL Certificate ──
+function renderSSL(d) {
+    if(d.error) {
+        document.getElementById("sslDomain").textContent = d.error;
+        document.getElementById("sslDays").textContent = "—";
+        return;
+    }
+    document.getElementById("sslDomain").textContent = d.domain || "—";
+    const days = d.days_remaining;
+    const daysEl = document.getElementById("sslDays");
+    daysEl.textContent = days >= 0 ? days : "—";
+    daysEl.className = "days";
+    if(days > 30) daysEl.classList.add("green");
+    else if(days >= 7) daysEl.classList.add("yellow");
+    else if(days >= 0) daysEl.classList.add("red");
+
+    document.getElementById("sslExpiry").textContent = d.expiry ? "过期: " + d.expiry : "";
+    document.getElementById("sslIssuer").textContent = d.issuer ? "签发: " + d.issuer : "";
+}
+
+// ── Nginx Stats ──
+function renderNginxStats(d) {
+    document.getElementById("nginxPV").textContent = d.pv != null ? d.pv.toLocaleString() : "--";
+    document.getElementById("nginxUV").textContent = d.uv != null ? d.uv.toLocaleString() : "--";
+
+    const codes = d.status_codes || {};
+    const codeMap = {2: 'nginx2xx', 3: 'nginx3xx', 4: 'nginx4xx', 5: 'nginx5xx'};
+    for(const [prefix, elId] of Object.entries(codeMap)) {
+        let count = 0;
+        for(const [code, cnt] of Object.entries(codes)) {
+            if(code.startsWith(prefix)) count += cnt;
+        }
+        document.getElementById(elId).textContent = count > 0 ? count.toLocaleString() : "0";
+    }
+
+    const paths = d.top_paths || [];
+    const pathsEl = document.getElementById("nginxTopPaths");
+    if(!paths.length) {
+        pathsEl.innerHTML = '<span>暂无数据</span>';
+        return;
+    }
+    pathsEl.innerHTML = paths.map(p =>
+        `<div class="stat-row"><span class="stat-label">${escHtml(p.path)}</span><span class="stat-value">${p.count}</span></div>`
+    ).join('');
+}
+
+// ── Chart Drawing ──
+function drawChart() {
+    const canvas = document.getElementById("metricsChart");
+    const wrap = document.getElementById("chartWrap");
+    const dpr = window.devicePixelRatio || 1;
+    const rect = wrap.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    if(!chartData.length) {
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#86868b';
+        ctx.font = '14px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('采集数据中，请稍候...', w/2, h/2);
+        return;
+    }
+
+    const pad = { top: 10, right: 20, bottom: 30, left: 45 };
+    const pw = w - pad.left - pad.right;
+    const ph = h - pad.top - pad.bottom;
+
+    // Find min/max
+    let tMin = chartData[0].t, tMax = chartData[chartData.length-1].t;
+    let vMin = 0, vMax = 100;
+    for(const pt of chartData) {
+        vMax = Math.max(vMax, pt.cpu, pt.mem, pt.disk);
+    }
+    vMax = Math.ceil(vMax / 10) * 10 + 5;
+    if(vMax < 10) vMax = 10;
+
+    const tx = (t) => pad.left + ((t - tMin) / (tMax - tMin)) * pw;
+    const ty = (v) => pad.top + ph - ((v - vMin) / (vMax - vMin)) * ph;
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(128,128,128,0.1)';
+    ctx.lineWidth = 0.5;
+    const gridLines = 5;
+    for(let i = 0; i <= gridLines; i++) {
+        const y = pad.top + (ph / gridLines) * i;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+        // Y label
+        const val = Math.round(vMax - (vMax - vMin) * (i / gridLines));
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#86868b';
+        ctx.font = '10px -apple-system, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(val + '%', pad.left - 6, y + 3);
+    }
+
+    // X labels (every ~5th point)
+    const xStep = Math.max(1, Math.floor(chartData.length / 6));
+    for(let i = 0; i < chartData.length; i += xStep) {
+        const x = tx(chartData[i].t);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#86868b';
+        ctx.font = '10px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(fmtTime(chartData[i].t), x, h - pad.bottom + 16);
+    }
+
+    // Lines
+    const lines = [
+        { key: 'cpu', color: CHART_COLORS.cpu },
+        { key: 'mem', color: CHART_COLORS.mem },
+        { key: 'disk', color: CHART_COLORS.disk },
+    ];
+
+    for(const line of lines) {
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        let first = true;
+        for(const pt of chartData) {
+            const x = tx(pt.t);
+            const y = ty(pt[line.key]);
+            if(first) { ctx.moveTo(x, y); first = false; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Store for hover
+    canvas._chartMeta = { tx, ty, pad, w, h, tMin, tMax };
+}
+
+// ── Chart Hover ──
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById("metricsChart");
+    const tooltip = document.getElementById("chartTooltip");
+
+    canvas.addEventListener('mousemove', function(e) {
+        const meta = canvas._chartMeta;
+        if(!meta || !chartData.length) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        // Find closest data point by X
+        let closest = chartData[0];
+        let minDist = Infinity;
+        for(const pt of chartData) {
+            const px = meta.tx(pt.t);
+            const dist = Math.abs(mx - px);
+            if(dist < minDist) { minDist = dist; closest = pt; }
+        }
+
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = `
+            <div style="font-weight:700;margin-bottom:4px">${fmtTimeFull(closest.t)}</div>
+            <div style="color:${CHART_COLORS.cpu}">CPU: ${closest.cpu.toFixed(1)}%</div>
+            <div style="color:${CHART_COLORS.mem}">内存: ${closest.mem.toFixed(1)}%</div>
+            <div style="color:${CHART_COLORS.disk}">磁盘: ${closest.disk.toFixed(1)}%</div>
+        `;
+        let tx = meta.tx(closest.t);
+        let ty = meta.ty(Math.max(closest.cpu, closest.mem, closest.disk)) - 10;
+        // Keep in bounds
+        if(tx + 140 > meta.w) tx -= 150;
+        if(ty < 10) ty = 10;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top = ty + 'px';
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+    });
+
+    // Range toggle buttons
+    document.getElementById('rangeToggles').addEventListener('click', function(e) {
+        if(e.target.classList.contains('range-btn')) {
+            document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            historyRange = e.target.dataset.range;
+            fetchHistory();
+        }
+    });
+
+    // Initial draws after DOM ready
+    fetchServices();
+    fetchContainers();
+    fetchSSL();
+    fetchNginxStats();
+    setTimeout(fetchHistory, 2000); // Wait for first data point
+});
+
+// ── Helpers ──
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.dataset.theme === "dark" ? "light" : "dark";
+    html.dataset.theme = next;
+    try { localStorage.setItem("theme", next) } catch(e) {}
+    // Redraw chart on theme change
+    setTimeout(drawChart, 100);
+}
+
+// ── Init ──
+try {
+    const saved = localStorage.getItem("theme");
+    if(saved) document.documentElement.dataset.theme = saved;
+} catch(e) {}
+fetchStatus();
+setInterval(fetchStatus, 3000);
+setInterval(fetchServices, 30000);
+setInterval(fetchContainers, 10000);
+setInterval(fetchHistory, 30000);
+
+// Nav theme button
+document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+
+// Handle window resize for chart
+window.addEventListener('resize', () => { if(chartData.length) drawChart(); });
+</script>
+<script src="/search.js"></script>
+</body>
+</html>

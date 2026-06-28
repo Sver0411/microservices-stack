@@ -1,0 +1,84 @@
+services:
+  site:
+    build: ./services/site
+    image: personal-site:latest
+    container_name: personal-site
+    ports:
+    - "80:80"
+    - "443:443"
+    restart: unless-stopped
+    networks:
+    - services-net
+    volumes:
+    - /var/www/html:/usr/share/nginx/html:ro
+    - ./ssl:/etc/nginx/ssl:ro
+    - nginx-logs:/var/log/nginx
+
+  dashboard:
+    build: ./services/dashboard
+    image: personal-dashboard:latest
+    container_name: personal-dashboard
+    restart: unless-stopped
+    volumes:
+    - /proc:/host_proc:ro
+    - /:/host_root:ro
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./ssl:/etc/nginx/ssl:ro
+    - nginx-logs:/var/log/nginx-host:ro
+    networks:
+    - services-net
+
+  converter:
+    build: ./services/converter
+    image: file-converter:latest
+    container_name: file-converter
+    restart: unless-stopped
+    networks:
+    - services-net
+
+  library-api:
+    build: ./services/library
+    image: library-api:latest
+    container_name: library-api
+    restart: unless-stopped
+    networks:
+    - services-net
+    volumes:
+    - library-data:/data
+    environment:
+    - SECRET_KEY=${LIBRARY_SECRET_KEY:-change-me-in-production}
+    - CORS_ORIGINS=${CORS_ORIGINS:-*}
+
+  blog-backend:
+    build: ./services/blog-backend
+    image: blog-backend:latest
+    container_name: blog-backend
+    restart: unless-stopped
+    networks:
+    - services-net
+    volumes:
+    - ./articles:/app/articles:ro
+    environment:
+    - SITE_URL=${SITE_URL:-https://example.com}
+
+  laptop-booking:
+    build: ./services/laptop-booking
+    image: laptop-booking:latest
+    container_name: laptop-booking
+    restart: unless-stopped
+    networks:
+    - services-net
+    volumes:
+    - laptop-booking-data:/data
+    environment:
+    - ADMIN_PASSWORD=${LAPTOP_ADMIN_PASSWORD:-change-me}
+    - FEISHU_WEBHOOK=${FEISHU_WEBHOOK:-}
+
+volumes:
+  library-data:
+  nginx-logs:
+  laptop-booking-data:
+
+networks:
+  services-net:
+    external: true
